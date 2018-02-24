@@ -44,6 +44,13 @@ let rec eval cfg prog =
       let v = Syntax.Expr.e_binop opname fs ss in
       eval (v :: rs, config) rest
 
+
+let rec e_compile expr =
+  match expr with
+  | Syntax.Expr.Const n          -> [CONST n]
+  | Syntax.Expr.Var x            -> [LD x]
+  | Syntax.Expr.Binop (op, x, y) -> (e_compile x) @ (e_compile y) @ [BINOP op]
+
 (* Stack machine compiler
 
      val compile : Syntax.Stmt.t -> prg
@@ -51,5 +58,9 @@ let rec eval cfg prog =
    Takes a program in the source language and returns an equivalent program for the
    stack machine
  *)
-
-let compile _ = failwith "Not yet implemented"
+let rec compile stmt =
+  match stmt with
+  | Syntax.Stmt.Assign (v, e) -> (e_compile e) @ [ST v]
+  | Syntax.Stmt.Read v        -> [READ; ST v]
+  | Syntax.Stmt.Write e       -> (e_compile e) @ [WRITE]
+  | Syntax.Stmt.Seq (s1, s2)  -> compile s1 @ compile s2
