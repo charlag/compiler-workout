@@ -34,14 +34,9 @@ module Expr =
     *)
     let update x v s = fun y -> if x = y then v else s y
 
-    (* Expression evaluator
 
-          val eval : state -> t -> int
-
-       Takes a state and an expression, and returns the value of the expression in
-       the given state.
-    *)
-    let rec eval st expr =
+    (* Eval binop *)
+    let e_binop op lr rr =
       let num_to_bool = (<>) 0 in
       let bool_to_num bool = if bool then 1 else 0 in
       let bool_fun camlfun = fun l r -> bool_to_num (camlfun (num_to_bool l) (num_to_bool r)) in
@@ -62,10 +57,21 @@ module Expr =
         | "/"  ->          ( /   )
         | "%"  ->          ( mod )
         | _    ->          failwith ("Unknwon  op" ^ binop) in
+      (fun_for_binop op) lr rr
+
+    (* Expression evaluator
+
+          val eval : state -> t -> int
+
+       Takes a state and an expression, and returns the value of the expression in
+       the given state.
+    *)
+    let rec eval st expr =
       match expr with
       | Const num                -> num
       | Var   s                  -> st s
-      | Binop (op, expr1, expr2) -> (fun_for_binop op) (eval st expr1) (eval st expr2)
+      | Binop (op, expr1, expr2) ->
+        e_binop op (eval st expr1) (eval st expr2)
 
   end
 
