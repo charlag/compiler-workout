@@ -1,16 +1,16 @@
-open GT       
+open GT
 open Language
-       
+
 (* The type for the stack machine instructions *)
 @type insn =
 (* binary operator                 *) | BINOP of string
-(* put a constant on the stack     *) | CONST of int                 
+(* put a constant on the stack     *) | CONST of int
 (* read to stack                   *) | READ
 (* write from stack                *) | WRITE
 (* load a variable to the stack    *) | LD    of string
 (* store a variable from the stack *) | ST    of string with show
 
-(* The type for the stack machine program *)                                                               
+(* The type for the stack machine program *)
 type prg = insn list
 
 (* The type for the stack machine configuration: a stack and a configuration from statement
@@ -23,11 +23,11 @@ type config = int list * Stmt.config
      val eval : config -> prg -> config
 
    Takes a configuration and a program, and returns a configuration as a result
- *)                         
+ *)
 let rec eval ((stack, ((st, i, o) as c)) as conf) = function
 | [] -> conf
 | insn :: prg' ->
-   eval 
+   eval
      (match insn with
       | BINOP op -> let y::x::stack' = stack in (Expr.to_func op x y :: stack', c)
       | READ     -> let z::i'        = i     in (z::stack, (st, i', o))
