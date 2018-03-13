@@ -127,14 +127,17 @@ let too_many_refs fr t =
   | _ -> false
 
 let mov fr t =
-  if (too_many_refs fr t)
-  then [Mov (fr, edx); Mov (edx, t)]
-  else [Mov (fr, t)]
+  (* if (too_many_refs fr t)
+   * then *)
+    [Mov (fr, edx); Mov (edx, t)]
+(* else *)
+  (* [Mov (fr, t)] *)
 
 let binop op fr t =
-  if (too_many_refs fr t)
-  then [Mov (fr, edx); Binop (op, edx, t)]
-  else [Binop (op, fr, t)]
+  (* if (too_many_refs fr t)
+   * then *)
+    [Mov (fr, edx); Binop (op, edx, t)]
+  (* else [Binop (op, fr, t)] *)
 
 
 (* Symbolic stack machine evaluator
@@ -170,12 +173,12 @@ let rec compile: env -> insn list -> env * instr list =
           let s, env'' = env'#allocate in
           let comparison suf =
             env'',
-            (binop "cmp" a1 a2) @  [Set (suf, "%al"); Cltd; Mov(eax, s)] in
+            (binop "cmp" a1 a2) @ [Set (suf, "%al"); Cltd; Mov(eax, s)] in
           match op with
           | "/" ->
-            env'', [Mov (a2, eax); Cltd] @ (mov a1 s) @ [IDiv s; Mov (eax, s)]
+            env'', [Mov (a2, eax)] @ (mov a1 s) @ [Cltd; IDiv s; Mov (eax, s)]
           | "%" ->
-            env'', [Mov (a2, eax); Cltd] @ (mov a1 s) @ [IDiv s; Mov(edx, s)]
+            env'', [Mov (a2, eax)] @ (mov a1 s) @ [Cltd; IDiv s; Mov(edx, s)]
           | "==" ->
             comparison "e"
           | "!=" ->
@@ -253,6 +256,7 @@ let genasm prog =
 
 (* Builds a program: generates the assembler file and compiles it with the gcc toolchain *)
 let build stmt name =
+  Printf.printf "%s\n" name ;
   let outf = open_out (Printf.sprintf "%s.s" name) in
   Printf.fprintf outf "%s" (genasm stmt);
   close_out outf;
