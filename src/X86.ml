@@ -127,17 +127,17 @@ let too_many_refs fr t =
   | _ -> false
 
 let mov fr t =
-  (* if (too_many_refs fr t)
-   * then *)
+  if (too_many_refs fr t)
+  then
     [Mov (fr, edx); Mov (edx, t)]
-(* else *)
-  (* [Mov (fr, t)] *)
+  else
+    [Mov (fr, t)]
 
 let binop op fr t =
-  (* if (too_many_refs fr t)
-   * then *)
+  if (too_many_refs fr t)
+  then
     [Mov (fr, edx); Binop (op, edx, t)]
-  (* else [Binop (op, fr, t)] *)
+  else [Binop (op, fr, t)]
 
 
 (* Symbolic stack machine evaluator
@@ -173,7 +173,8 @@ let rec compile: env -> insn list -> env * instr list =
           let s, env'' = env'#allocate in
           let comparison suf =
             env'',
-            (binop "cmp" a1 a2) @ [Set (suf, "%al"); Cltd; Mov(eax, s)] in
+            Binop ("^", eax, eax) :: (binop "cmp" a1 a2) @
+            [Set (suf, "%al"); Mov(eax, s)] in
           match op with
           | "/" ->
             env'', [Mov (a2, eax)] @ (mov a1 s) @ [Cltd; IDiv s; Mov (eax, s)]
@@ -191,14 +192,13 @@ let rec compile: env -> insn list -> env * instr list =
             comparison "l"
           | "<=" ->
             comparison "le"
-          | "!!" ->
-            env'', (binop "!!" a1 a2) @ [Mov(a2, eax); Mov(L 0, ebx);
-                    Binop("cmp", eax, ebx); Set("ne", "%al");
-                    Cltd; Mov (eax, s)]
-          | "&&" ->
-            env'', (binop "&&" a1 a2) @ [Mov(a2, eax); Mov(L 0, edx);
-                    Binop("cmp", eax, edx); Set("ne", "%al");
-                                         Cltd; Mov (eax, s)]
+          | "!!" | "&&" ->
+            let to_bool arg reg part =
+              [Binop("^", reg, reg); Binop("cmp", arg, reg);
+               Set("ne", part)]
+            in
+            env'', to_bool a1 eax "%al" @ to_bool a2 edx "%dl" @
+            [Binop (op, eax, edx); Mov (edx, s)]
           | "*" ->
             env'', [Mov (a1, eax); Binop("*", a2, eax); Mov(eax, a2)]
           | _ ->
@@ -237,7 +237,7 @@ let rec sm_prog_str prog =
 *)
 let genasm prog =
   let compiled = SM.compile prog in
-  Printf.printf "%s\n" (sm_prog_str compiled) ;
+  (* Printf.printf "%s\n" (sm_prog_str compiled) ; *)
   let env, code = compile_unit (new env) (compiled) in
   let asm = Buffer.create 1024 in
   Buffer.add_string asm "\t.data\n";
